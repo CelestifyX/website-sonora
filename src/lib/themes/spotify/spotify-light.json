@@ -16,14 +16,19 @@
 		"muted": "#e4e4e4",
 		"muted_foreground": "#5a5a5a",
 		"border": "#d8d8d8",
-		"primary": "#1db954",
+		"primary": "#117a37",
 		"primary_foreground": "#ffffff",
-		"primary_hover": "#1ed760",
+		"primary_hover": "#0e6a2f",
 		"progress_bar": "#1db954",
 		"selection": "#1db95433",
 		"danger": "#e91429",
 		"danger_foreground": "#ffffff",
 		"table_active": "#e4e4e4",
-		"table_active_border": "#1db954"
+		"table_active_border": "#1db954",
+		"table_head": "#e8e8e8",
+		"table_head_foreground": "#5a5a5a",
+		"table_hover": "#eaeaea",
+		"table_row_border": "#dcdcdc",
+		"title_bar_border": "#d0d0d0"
 	}
 }

@@ -16,6 +16,17 @@
 		"progress_bar": "#00c9a7",
 		"selection": "#b8a5ff",
 		"table_active": "#00c9a733",
-		"table_active_border": "#ff3cac"
+		"table_active_border": "#ff3cac",
+		"popover_foreground": "#202236",
+		"secondary_hover": "#dfe2ee",
+		"secondary_active": "#d3d7e8",
+		"primary_hover": "#6d28d9",
+		"sidebar_accent": "#e1e4f2",
+		"sidebar_border": "#dfe2ee",
+		"title_bar_border": "#dfe2ee",
+		"table_head": "#eef0f8",
+		"table_head_foreground": "#565a72",
+		"table_row_border": "#e4e6f0",
+		"table_hover": "#eceef7"
 	}
 }
