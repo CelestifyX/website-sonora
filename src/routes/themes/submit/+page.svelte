@@ -308,7 +308,8 @@
 					<fieldset class="checks">
 						<label>
 							<input type="checkbox" bind:checked={tested} />
-							I installed the theme in Sonora and text stays readable on every screen I opened.
+							I installed the theme in Sonora and text stays readable on every screen I opened. Unreadable
+							themes WILL be rejected.
 						</label>
 						<label>
 							<input type="checkbox" bind:checked={rights} />

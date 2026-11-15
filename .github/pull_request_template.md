@@ -29,5 +29,5 @@
 - [ ] This pull request only changes theme files and their optional submitter credit.
 - [ ] It adds or changes exactly one theme: a single file, or one folder with a file per variant.
 - [ ] Files and folders are named in lowercase with hyphens, such as `night-owl.json` or `night-owl/dark.json`.
-- [ ] I installed the theme in Sonora and text stays readable on every screen I opened.
+- [ ] I installed the theme in Sonora and text stays readable on every screen I opened. Unreadable themes WILL be rejected.
 - [ ] I made this theme, or I have the right to share it.
