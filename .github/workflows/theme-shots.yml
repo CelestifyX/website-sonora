@@ -1,0 +1,205 @@
+name: Theme preview
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths: ['src/lib/themes/**']
+
+concurrency:
+  group: theme-shots-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# The site, the screenshot script and their dependencies come from the base branch. The pull
+# request contributes only its theme files, which are read as data and checked before use, so
+# the write token never meets code from the pull request.
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+env:
+  MARKER: '<!-- sonora-theme-shots -->'
+  SHOTS_BRANCH: theme-shots
+
+jobs:
+  shots:
+    if: ${{ github.repository == 'sonorahq/website' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Say the screenshots are on their way
+        id: note
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const { owner, repo } = context.repo;
+            const body = [
+              process.env.MARKER,
+              '## Theme preview',
+              '',
+              `Rendering screenshots of ${pr.head.sha.slice(0, 7)} in the website's replica of Sonora. This comment updates when they are ready.`
+            ].join('\n');
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: pr.number,
+              per_page: 100
+            });
+            const previous = comments.find(
+              (comment) => comment.user?.type === 'Bot' && comment.body?.includes(process.env.MARKER)
+            );
+            const comment = previous
+              ? (await github.rest.issues.updateComment({ owner, repo, comment_id: previous.id, body })).data
+              : (await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body })).data;
+            core.setOutput('id', comment.id);
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Fetch the themes the pull request changes
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const pr = context.payload.pull_request;
+            const FOLDER = 'src/lib/themes/';
+            const LIMIT = 64 * 1024;
+            if (!pr.head.repo) throw new Error('The branch of this pull request no longer exists.');
+            const head = { owner: pr.head.repo.owner.login, repo: pr.head.repo.name, ref: pr.head.sha };
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              ...context.repo,
+              pull_number: pr.number,
+              per_page: 100
+            });
+            const ids = [
+              ...new Set(
+                files
+                  .filter((file) => file.filename.startsWith(FOLDER) && file.status !== 'removed')
+                  .map((file) => file.filename.slice(FOLDER.length).split('/')[0].replace(/\.json$/, ''))
+                  .filter((id) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id))
+              )
+            ];
+            /** One file of the head commit as text, or null when it is not there. */
+            const read = async (path) => {
+              try {
+                const { data } = await github.rest.repos.getContent({ ...head, path });
+                if (Array.isArray(data) || data.size > LIMIT) return null;
+                return Buffer.from(data.content, 'base64').toString('utf8');
+              } catch (error) {
+                if (error.status === 404) return null;
+                throw error;
+              }
+            };
+            fs.mkdirSync('pr-themes');
+            const paths = [];
+            for (const id of ids.slice(0, 4)) {
+              const single = await read(`${FOLDER}${id}.json`);
+              if (single !== null) {
+                fs.writeFileSync(`pr-themes/${id}.json`, single);
+                paths.push(`pr-themes/${id}.json`);
+                continue;
+              }
+              let listing = [];
+              try {
+                ({ data: listing } = await github.rest.repos.getContent({ ...head, path: `${FOLDER}${id}` }));
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+              const names = (Array.isArray(listing) ? listing : [])
+                .filter((entry) => entry.type === 'file' && /^[a-z0-9]+(?:-[a-z0-9]+)*\.json$/.test(entry.name))
+                .map((entry) => entry.name)
+                .slice(0, 8);
+              if (!names.length) continue;
+              fs.mkdirSync(`pr-themes/${id}`);
+              for (const name of names) {
+                const text = await read(`${FOLDER}${id}/${name}`);
+                if (text !== null) fs.writeFileSync(`pr-themes/${id}/${name}`, text);
+              }
+              paths.push(`pr-themes/${id}`);
+            }
+            if (!paths.length) throw new Error('No theme files to preview.');
+            fs.writeFileSync('pr-themes/paths', paths.join('\n'));
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - run: bun install --frozen-lockfile
+
+      - run: bunx playwright install --with-deps --only-shell chromium
+
+      - name: Take the screenshots
+        run: |
+          bunx vite dev --port 4173 --strictPort > vite.log 2>&1 &
+          for attempt in $(seq 60); do
+            curl -sf http://localhost:4173/themes/shot > /dev/null && break
+            sleep 2
+          done
+          xargs node scripts/theme-shots.mjs shoot --url http://localhost:4173 --out shots < pr-themes/paths
+
+      - name: Publish the screenshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --heads "$remote" "$SHOTS_BRANCH" > /dev/null; then
+            git clone --depth 1 --branch "$SHOTS_BRANCH" "$remote" published
+          else
+            git init -b "$SHOTS_BRANCH" published
+            git -C published remote add origin "$remote"
+          fi
+          rm -rf "published/pr-$NUMBER"
+          mkdir -p "published/pr-$NUMBER/$SHA"
+          cp -r shots/. "published/pr-$NUMBER/$SHA/"
+          cd published
+          git add -A
+          git commit -q -m "chore: screenshots for #$NUMBER at ${SHA:0:7}"
+          for attempt in 1 2 3; do
+            git push -q origin "HEAD:$SHOTS_BRANCH" && exit 0
+            git pull -q --rebase origin "$SHOTS_BRANCH"
+          done
+          exit 1
+
+      - name: Write the comment
+        env:
+          NUMBER: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          node scripts/theme-shots.mjs markdown \
+            --report shots/report.json \
+            --base "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${SHOTS_BRANCH}/pr-${NUMBER}/${SHA}" \
+            --marker "$MARKER" \
+            --head "${SHA:0:7}" > comment.md
+
+      - name: Show the screenshots
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.issues.updateComment({
+              ...context.repo,
+              comment_id: Number('${{ steps.note.outputs.id }}'),
+              body: require('fs').readFileSync('comment.md', 'utf8')
+            });
+
+      - name: Say the screenshots failed
+        if: ${{ failure() && steps.note.outputs.id }}
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.updateComment({
+              ...context.repo,
+              comment_id: Number('${{ steps.note.outputs.id }}'),
+              body: [
+                process.env.MARKER,
+                '## Theme preview',
+                '',
+                `The screenshots of ${context.payload.pull_request.head.sha.slice(0, 7)} could not be rendered. [See the run](${run}) for what went wrong.`
+              ].join('\n')
+            });
