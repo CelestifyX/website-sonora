@@ -26,7 +26,7 @@
 		"sidebar_accent": "#D8DEE9",
 		"title_bar_border": "#B8C0CE",
 		"table_hover": "#E5E9F0",
-		"secondary_hover": "#D8DEE9",
-		"secondary_active": "#C5CDDA"
+		"secondary_hover": "#C5CDDA",
+		"secondary_active": "#B8C0CE"
 	}
 }
