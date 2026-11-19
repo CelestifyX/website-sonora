@@ -245,24 +245,27 @@ export const pinned = [
 	}
 ];
 
-export const nav = [
-	{ id: 'home', label: 'Home', icon: 'house' },
-	{ id: 'search', label: 'Search', icon: 'search' },
-	{
-		id: 'library',
-		label: 'Your Library',
-		icon: 'library-big',
-		tabs: ['Songs', 'Albums', 'Artists', 'Playlists']
-	},
-	{
-		id: 'local',
-		label: 'Local Music',
-		icon: 'file-music',
-		tabs: ['Songs', 'Albums', 'Artists', 'Playlists']
-	},
-	{ id: 'history', label: 'History', icon: 'rotate-ccw-clock' },
-	{ id: 'settings', label: 'Settings', icon: 'settings' }
-];
+/** One row of the sidebar's navigation. A row with a `tab` opens that tab of the library. */
+export type NavEntry = { screen: string; tab?: string; label: string; icon: string };
+
+/**
+ * The sidebar's rows as the desktop shows them by default: the top rows, then the four library
+ * rows under their heading. Each library row opens one tab of the merged streaming and local
+ * library. History and Settings live in the account menu of the title bar.
+ */
+export const nav: { top: NavEntry[]; library: NavEntry[] } = {
+	top: [
+		{ screen: 'home', label: 'Home', icon: 'house' },
+		{ screen: 'search', label: 'Search', icon: 'search' },
+		{ screen: 'history', label: 'Recents', icon: 'rotate-ccw-clock' }
+	],
+	library: [
+		{ screen: 'library', tab: 'Songs', label: 'Songs', icon: 'music' },
+		{ screen: 'library', tab: 'Albums', label: 'Albums', icon: 'disc-3' },
+		{ screen: 'library', tab: 'Artists', label: 'Artists', icon: 'user' },
+		{ screen: 'library', tab: 'Playlists', label: 'Playlists', icon: 'list-music' }
+	]
+};
 
 export const columns = [
 	{ key: 'index', label: '#', width: 44, align: 'center' },

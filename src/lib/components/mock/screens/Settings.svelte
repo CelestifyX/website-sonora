@@ -1132,7 +1132,6 @@
 	.eyebrow {
 		font-size: 12px;
 		font-weight: 600;
-		text-transform: uppercase;
 		color: var(--m-muted-foreground);
 	}
 

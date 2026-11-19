@@ -18,6 +18,13 @@ function sections(groups: Item[][]): Item[] {
 		.flatMap((group, at) => (at ? [{ id: `section-${at}`, separator: true }, ...group] : group));
 }
 
+/** The row that opens the page a menu belongs to, left out while that page is the one on screen. */
+function openItem(stop: { screen: string; id: string }, label: string): Item[] {
+	const at = route.now;
+	if (at.screen === stop.screen && at.id === stop.id) return [];
+	return [{ id: 'open-page', label, icon: 'info', onclick: () => route.go(stop) }];
+}
+
 const copyLink = (id: string): Item => ({ id: `copy-${id}`, label: 'Copy link', icon: 'link' });
 
 function heartTile(id: string, saved: boolean, onclick: () => void): Tile {
@@ -27,6 +34,17 @@ function heartTile(id: string, saved: boolean, onclick: () => void): Tile {
 		title: saved ? 'Remove from Favorites' : 'Add to Favorites',
 		active: saved,
 		onclick
+	};
+}
+
+function libraryTile(id: string): Tile {
+	const kept = library.shelved(id);
+	return {
+		id: `tile-library-${id}`,
+		icon: 'library-big',
+		title: 'Library',
+		active: kept,
+		onclick: () => library.shelve(id)
 	};
 }
 
@@ -102,7 +120,7 @@ function queueItems(ids: string[], prefix: string): Item[] {
 	];
 }
 
-/** A song's menu. `album` leaves out Go to Album on that album's own page, a `playlist` page
+/** A song's menu. `album` leaves out Go to album on that album's own page, a `playlist` page
  *  adds Remove from playlist and the history adds Remove from history, as the desktop does. */
 export function trackMenu(
 	track: Track,
@@ -114,31 +132,36 @@ export function trackMenu(
 ): Sheet {
 	const artist = artistOf(track.artist);
 	const destinations: Item[] = [
-		{
-			id: 'go-to-artist',
-			label: 'Artist',
-			icon: 'user',
-			disabled: !artist,
-			onclick: () => artist && route.go({ screen: 'artist', id: artist.id })
-		},
 		...(album === track.album
 			? []
 			: [
 					{
 						id: 'go-to-album',
-						label: 'Album',
+						label: 'Go to album',
 						icon: 'disc-3',
 						onclick: () => route.go({ screen: 'album', id: track.album })
 					}
 				]),
-		{ id: 'song-radio', label: 'Radio', icon: 'radio', onclick: () => player.select(track.id) },
-		{ id: 'view-details', label: 'Details', icon: 'info', disabled: true }
+		{
+			id: 'go-to-artist',
+			label: 'Go to artist',
+			icon: 'user',
+			disabled: !artist,
+			onclick: () => artist && route.go({ screen: 'artist', id: artist.id })
+		},
+		{
+			id: 'song-radio',
+			label: 'Go to song radio',
+			icon: 'radio',
+			onclick: () => player.select(track.id)
+		}
 	];
 	const liked = player.likes(track.id);
 	return {
 		width: ITEM_WIDTH,
 		tiles: [
 			heartTile(track.id, liked, () => player.toggleLike(track.id)),
+			libraryTile(track.id),
 			downloadTile(`song-${track.id}`, [track.id], {
 				key: `song-${track.id}`,
 				subject: 'Song',
@@ -168,13 +191,13 @@ export function trackMenu(
 					: [])
 			],
 			queueItems([track.id], 'track'),
+			destinations,
 			[
 				{
-					id: 'go-to',
-					label: 'Go to',
-					icon: 'square-arrow-out-up-right',
-					width: 200,
-					submenu: destinations
+					id: 'view-details',
+					label: 'View details',
+					icon: 'info',
+					onclick: () => route.go({ screen: 'album', id: track.album })
 				},
 				copyLink(track.id)
 			],
@@ -191,6 +214,7 @@ export function albumMenu(id: string): Sheet {
 		width: ITEM_WIDTH,
 		tiles: [
 			heartTile(id, saved, () => library.toggle(id)),
+			libraryTile(id),
 			downloadTile(`album-${id}`, ids, {
 				key: `album-${id}`,
 				subject: 'Album',
@@ -200,6 +224,7 @@ export function albumMenu(id: string): Sheet {
 			pinTile('Album', id)
 		],
 		items: sections([
+			openItem({ screen: 'album', id }, 'Go to album'),
 			[
 				{
 					id: 'add-album-to-playlist',
@@ -230,6 +255,7 @@ export function playlistMenu(id: string): Sheet {
 			pinTile('Playlist', id)
 		],
 		items: sections([
+			openItem({ screen: 'playlist', id }, 'Go to playlist'),
 			queueItems(ids, 'playlist'),
 			[
 				{ id: 'playlist-visibility', label: 'Make private', icon: 'user' },
@@ -269,7 +295,11 @@ export function artistMenu(id: string, { here = false }: { here?: boolean } = {}
 							artists.find((entry) => entry.id === id)?.name ?? '',
 							'Artist'
 						)
-				}
+				},
+				...queueItems(
+					popularOf(id).map((track) => track.id),
+					'artist'
+				)
 			],
 			[copyLink(id)]
 		])

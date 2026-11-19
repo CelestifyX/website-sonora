@@ -183,6 +183,10 @@ export const icons = new Map([
 		'trash-2',
 		'<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'
 	],
+	[
+		'circle-user-round',
+		'<path d="M17.925 20.056a6 6 0 0 0-11.851.001"/><circle cx="12" cy="11" r="4"/><circle cx="12" cy="12" r="10"/>'
+	],
 	['user-round', '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>'],
 	['check', '<path d="M20 6 9 17l-5-5"/>'],
 	[

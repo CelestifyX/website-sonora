@@ -186,14 +186,6 @@ export function popularOf(id: string) {
 	return [...catalogue.values()].filter((track) => owned.includes(track.album));
 }
 
-const localIds = [...new Set(localTracks.map((track) => track.album))];
-
-export const localAlbums = albums.filter((entry) => localIds.includes(entry.id));
-
-export const localArtists = artists.filter((artist) =>
-	localAlbums.some((entry) => entry.artist === artist.name)
-);
-
 export const libraryColumns = [
 	{ key: 'index', label: '#', width: 44, align: 'center' },
 	{ key: 'cover', label: '', width: 50 },
