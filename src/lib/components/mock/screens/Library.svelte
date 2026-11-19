@@ -2,15 +2,7 @@
 	import { menu } from '$lib/mock/menu.svelte';
 	import { albumMenu, artistMenu, playlistMenu } from '$lib/mock/menus';
 	import { albums, clock, records } from '$lib/mock/album';
-	import {
-		artists,
-		favorites,
-		libraryColumns,
-		localAlbums,
-		localArtists,
-		localTracks,
-		playlists
-	} from '$lib/mock/screens';
+	import { artists, favorites, libraryColumns, localTracks, playlists } from '$lib/mock/screens';
 	import { player } from '$lib/mock/player.svelte';
 	import { route } from '$lib/mock/route.svelte';
 	import Card from '../Card.svelte';
@@ -18,16 +10,19 @@
 	import PageHero from '../PageHero.svelte';
 	import Table from '../Table.svelte';
 
-	let { shelf = 'library', tab = 'Songs' }: { shelf?: string; tab?: string } = $props();
+	let { tab = 'Songs' }: { tab?: string } = $props();
 
 	const CARD = 145;
 	const GAP = 33;
 
-	const local = $derived(shelf === 'local');
-	const songs = $derived(local ? localTracks : favorites);
-	const shown = $derived(local ? localAlbums : albums);
-	const people = $derived(local ? localArtists : artists);
-	const lists = $derived(local ? [] : playlists);
+	/** The saved songs with the local files mixed in, as the desktop merges them into one library. */
+	const songs = [
+		...favorites,
+		...localTracks.filter((track) => !favorites.some((saved) => saved.id === track.id))
+	];
+	const shown = albums;
+	const people = artists;
+	const lists = playlists;
 	const total = $derived(songs.reduce((sum, track) => sum + track.length, 0));
 	const mine = $derived(songs.some((track) => track.id === player.id));
 	const holding = $derived(mine && player.playing);
@@ -37,10 +32,9 @@
 	{#if tab === 'Songs'}
 		<div class="gutter">
 			<PageHero
-				title={local ? 'Songs' : 'Favorites'}
-				eyebrow={local ? 'Local Music' : 'Playlist'}
-				fallback={local ? 'disc-3' : 'heart-filled'}
-				accent
+				title="Songs"
+				eyebrow="Your Library"
+				fallback="music"
 				meta={[`${songs.length} songs`, clock(total)]}
 			>
 				{#snippet actions()}
@@ -102,9 +96,6 @@
 		</div>
 	{:else}
 		<div class="grid" style:column-gap="{GAP}px">
-			{#if !lists.length}
-				<span class="vacant">No local playlists yet</span>
-			{/if}
 			{#each lists as list (list.id)}
 				<Card
 					tile={CARD}
@@ -143,16 +134,6 @@
 
 	.gutter {
 		padding: 0 24px;
-		flex: none;
-	}
-
-	.vacant {
-		display: flex;
-		width: 100%;
-		align-items: center;
-		justify-content: center;
-		padding: 16px;
-		color: var(--m-muted-foreground);
 		flex: none;
 	}
 

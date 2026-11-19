@@ -1,12 +1,14 @@
 /** What the listener saved and pinned in the mock, shared by the pages, the menus and the sidebar. */
 import { SvelteSet } from 'svelte/reactivity';
 import { catalogue, pinned, shelf } from '$lib/mock/album';
-import { artists, playlists } from '$lib/mock/screens';
+import { artists, favorites, playlists } from '$lib/mock/screens';
 
 export type Pin = (typeof pinned)[number];
 
 const saved = new SvelteSet<string>(['bergamasque', 'seasons', 'chopin']);
 let pins = $state<Pin[]>([...pinned]);
+/** The songs and albums kept in the library, which the Library tile of a menu adds and removes. */
+const shelved = new SvelteSet<string>([...favorites.map((track) => track.id), ...saved]);
 /** Songs added to or taken out of a playlist from a menu, over what the playlist starts with. */
 const filed = new SvelteSet<string>();
 const unfiled = new SvelteSet<string>();
@@ -74,6 +76,13 @@ export const library = {
 	toggle(id: string) {
 		if (saved.has(id)) saved.delete(id);
 		else saved.add(id);
+	},
+	shelved(id: string) {
+		return shelved.has(id);
+	},
+	shelve(id: string) {
+		if (shelved.has(id)) shelved.delete(id);
+		else shelved.add(id);
 	},
 	holds(list: string, track: string) {
 		const key = slot(list, track);

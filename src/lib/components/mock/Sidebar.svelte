@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { SvelteSet } from 'svelte/reactivity';
-	import { catalogue, nav } from '$lib/mock/album';
+	import { catalogue, nav, type NavEntry } from '$lib/mock/album';
 	import { library } from '$lib/mock/library.svelte';
 	import { menu } from '$lib/mock/menu.svelte';
 	import { albumMenu, artistMenu, playlistMenu, trackMenu } from '$lib/mock/menus';
@@ -8,66 +7,38 @@
 	import Card from './Card.svelte';
 	import Icon from './Icon.svelte';
 
-	const opened = new SvelteSet(['library']);
-
 	let folded = $state(false);
 
 	const at = $derived(route.now);
 
-	$effect(() => {
-		if (nav.some((entry) => entry.tabs && entry.id === at.screen)) opened.add(at.screen);
-	});
-
-	function pick(entry: { id: string; tabs?: string[] }) {
-		if (entry.tabs) {
-			if (opened.has(entry.id)) opened.delete(entry.id);
-			else opened.add(entry.id);
-			return;
-		}
-		route.go({ screen: entry.id });
-	}
-
-	const inside = (entry: { id: string }) => at.screen === entry.id;
-
-	const chosen = (entry: { id: string }, tab: string) => at.screen === entry.id && at.tab === tab;
+	/** Whether the page on screen belongs to `entry`, the way the desktop's `same_section` asks. */
+	const inside = (entry: NavEntry) =>
+		at.screen === entry.screen && (!entry.tab || (at.tab ?? 'Songs') === entry.tab);
 
 	const here = (entry: { to: { screen: string; id: string } }) =>
 		at.screen === entry.to.screen && at.id === entry.to.id;
 </script>
 
-<nav class="sidebar">
-	{#each nav as entry (entry.id)}
-		<button
-			type="button"
-			class="row"
-			class:lit={inside(entry)}
-			class:on={!entry.tabs && inside(entry)}
-			onclick={() => pick(entry)}
-		>
-			<Icon name={entry.icon} />
-			<span class="label">{entry.label}</span>
-			{#if entry.tabs}
-				<Icon name={opened.has(entry.id) ? 'chevron-down' : 'chevron-right'} />
-			{/if}
-		</button>
+{#snippet row(entry: NavEntry)}
+	<button
+		type="button"
+		class="row"
+		class:on={inside(entry)}
+		onclick={() => route.go({ screen: entry.screen, tab: entry.tab })}
+	>
+		<Icon name={entry.icon} />
+		<span class="label">{entry.label}</span>
+	</button>
+{/snippet}
 
-		{#if entry.tabs && opened.has(entry.id)}
-			<div class="tabs">
-				{#each entry.tabs as tab (tab)}
-					<span class="seat">
-						<button
-							type="button"
-							class="row tab"
-							class:lit={chosen(entry, tab)}
-							class:on={chosen(entry, tab)}
-							onclick={() => route.go({ screen: entry.id, tab })}
-						>
-							<span class="label">{tab}</span>
-						</button>
-					</span>
-				{/each}
-			</div>
-		{/if}
+<nav class="sidebar">
+	{#each nav.top as entry (entry.label)}
+		{@render row(entry)}
+	{/each}
+
+	<span class="heading">Library</span>
+	{#each nav.library as entry (entry.label)}
+		{@render row(entry)}
 	{/each}
 
 	<div class="group">
@@ -140,13 +111,13 @@
 		cursor: pointer;
 	}
 
-	.row.lit {
-		color: var(--m-foreground);
-	}
-
 	.row:hover,
 	.row.on {
 		background: var(--m-sidebar-accent);
+	}
+
+	.row.on {
+		color: var(--m-foreground);
 	}
 
 	.label {
@@ -157,34 +128,17 @@
 		white-space: nowrap;
 	}
 
-	.tabs {
-		position: relative;
+	/* the heading over the library rows, starting where their glyphs start */
+	.heading {
 		display: flex;
-		flex-direction: column;
-		gap: 3.5px;
-		margin-left: 16px;
-	}
-
-	.tabs::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		bottom: 16px;
-		left: 4px;
-		width: 1px;
-		background: var(--m-sidebar-border);
-	}
-
-	.seat {
-		display: flex;
+		flex: none;
 		align-items: center;
-		height: 32px;
-		padding-left: 10.5px;
-	}
-
-	.tab {
-		flex: 1;
-		min-width: 0;
+		height: 26px;
+		margin-top: 8px;
+		padding-left: 12px;
+		color: var(--m-muted-foreground);
+		font-size: 12px;
+		font-weight: 500;
 	}
 
 	.group {
@@ -193,7 +147,7 @@
 		align-items: center;
 		justify-content: space-between;
 		height: 26px;
-		margin: 8px 0 2px;
+		margin: 16px 0 2px;
 		padding: 0 3.5px 0 7px;
 	}
 
@@ -216,7 +170,6 @@
 	.fold .eyebrow {
 		overflow: hidden;
 		text-overflow: ellipsis;
-		text-transform: uppercase;
 		white-space: nowrap;
 	}
 

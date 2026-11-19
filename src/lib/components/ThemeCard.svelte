@@ -7,7 +7,7 @@
 	/**
 	 * A community theme's card as the gallery shows it: the miniature, the name with a dot per
 	 * variant that previews it on hover, and the authors. `meta` sits at the end of the byline and
-	 * `actions` along the bottom.
+	 * `actions` along the bottom. With `onpreview` the miniature opens the variant it shows.
 	 */
 	let {
 		name,
@@ -16,7 +16,8 @@
 		variants,
 		tag = 'div',
 		meta,
-		actions
+		actions,
+		onpreview
 	}: {
 		name: string;
 		authors: string[];
@@ -25,6 +26,7 @@
 		tag?: string;
 		meta?: Snippet;
 		actions?: Snippet;
+		onpreview?: (variant: string) => void;
 	} = $props();
 
 	/** The variant whose dot the pointer is on. */
@@ -40,9 +42,20 @@
 </script>
 
 <svelte:element this={tag} class="card">
-	<div class="preview">
-		<ThemeMiniature colors={shown.colors} />
-	</div>
+	{#if onpreview}
+		<button
+			type="button"
+			class="preview opens"
+			aria-label="Preview {name} in Sonora"
+			onclick={() => onpreview(shown.id)}
+		>
+			<ThemeMiniature colors={shown.colors} />
+		</button>
+	{:else}
+		<div class="preview">
+			<ThemeMiniature colors={shown.colors} />
+		</div>
+	{/if}
 	<div class="body">
 		<div class="names">
 			<div class="title">
@@ -89,6 +102,30 @@
 	.preview {
 		padding: 16px;
 		border-bottom: 1px solid var(--line);
+	}
+
+	.opens {
+		display: block;
+		width: 100%;
+		border: 0;
+		border-bottom: 1px solid var(--line);
+		background: none;
+		cursor: default;
+	}
+
+	/* only a fine pointer on a wide screen gets the preview, so phones keep a still picture */
+	@media (hover: hover) and (pointer: fine) and (min-width: 900px) {
+		.opens {
+			cursor: zoom-in;
+		}
+
+		.opens :global(svg) {
+			transition: transform 0.2s ease;
+		}
+
+		.opens:hover :global(svg) {
+			transform: scale(1.02);
+		}
 	}
 
 	.preview :global(svg) {

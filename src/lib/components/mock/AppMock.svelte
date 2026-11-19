@@ -168,7 +168,7 @@
 			{#if full}
 				<Fullscreen bind:panel={stage} onleave={() => (full = false)} />
 			{:else}
-				<TitleBar left={shown} {docked} ontoggle={toggleLeft} bind:right />
+				<TitleBar left={shown} ontoggle={toggleLeft} bind:right />
 				<div class="body">
 					{#if docked}
 						<Sidebar />
@@ -178,9 +178,7 @@
 					{:else if at.screen === 'search'}
 						<Search room={content} />
 					{:else if at.screen === 'library'}
-						<Library shelf="library" tab={at.tab ?? 'Songs'} />
-					{:else if at.screen === 'local'}
-						<Library shelf="local" tab={at.tab ?? 'Songs'} />
+						<Library tab={at.tab ?? 'Songs'} />
 					{:else if at.screen === 'history'}
 						<History />
 					{:else if at.screen === 'settings'}

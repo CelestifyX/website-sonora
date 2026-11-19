@@ -405,7 +405,6 @@
 	.eyebrow {
 		font-size: 12px;
 		font-weight: 600;
-		text-transform: uppercase;
 		color: var(--m-muted-foreground);
 	}
 
@@ -581,10 +580,6 @@
 		font-size: 12px;
 		font-weight: 600;
 		color: var(--m-muted-foreground);
-	}
-
-	.group .eyebrow {
-		text-transform: uppercase;
 	}
 
 	.dot,
