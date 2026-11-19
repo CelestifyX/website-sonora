@@ -2,7 +2,8 @@
 	import EditLink from '$lib/components/EditLink.svelte';
 	import Glyph from '$lib/components/Glyph.svelte';
 	import ThemeCard from '$lib/components/ThemeCard.svelte';
-	import { themes } from '$lib/data/themes';
+	import ThemePreview from '$lib/components/ThemePreview.svelte';
+	import { themes, type CommunityTheme } from '$lib/data/themes';
 	import { onMount, untrack } from 'svelte';
 	import type { PageProps } from './$types';
 
@@ -53,6 +54,18 @@
 			if (res.ok) downloads = await res.json();
 		} catch {}
 	});
+
+	/** The theme open in the Sonora preview, and the variant it shows. */
+	let previewed = $state<{ family: CommunityTheme; variant: string } | null>(null);
+
+	/**
+	 * Opens `theme` in the Sonora preview on a desktop. A phone has no room for the window, so a
+	 * tap there does nothing.
+	 */
+	function preview(theme: CommunityTheme, variant: string) {
+		if (!matchMedia('(hover: hover) and (pointer: fine) and (min-width: 900px)').matches) return;
+		previewed = { family: theme, variant };
+	}
 
 	/** Counts an install or download of theme `id` and shows the new count. */
 	async function record(id: string) {
@@ -108,6 +121,7 @@
 					authors={theme.authors}
 					github={theme.github}
 					variants={theme.variants}
+					onpreview={(variant) => preview(theme, variant)}
 				>
 					{#snippet meta()}
 						{#if downloads}
@@ -168,6 +182,10 @@
 					<Glyph name="chevron-right" />
 				</button>
 			</nav>
+		{/if}
+
+		{#if previewed}
+			<ThemePreview bind:theme={previewed} />
 		{/if}
 
 		<div class="source">
